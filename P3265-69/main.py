@@ -1,121 +1,76 @@
 import numpy as np
+import matplotlib.pyplot as plt
 
-E = 0.0001
+from Functions import F1, F2, F3
+from NewtonMethod import NewtonMethod
+from ChordMethod import ChordsMethod
+from SimpleIterationsMethod import SimpleIterationsMethod
+from SystemNewtonMethod import SystemNewtonMethod
 
-def calculate_determinant(matrix, n):
-    det = 1.0
+def main():
+    print("Введите номер функции, которую хотите решить:")
+    print("1) F1(x) = x^3 - 3.125x^2 - 3.5x + 2.458")
+    print("2) F2(x) = 2x^3 - 1.89x^2 - 5x + 2.34")
+    print("3) F3(x) = e^x - 3")
+    print("4) F4(x, y):")
+    print("   x^2 + y^2 - 4 = 0")
+    print("   -3 * x^2 + y = 0")
+    function_choice = int(input())
 
-    if n == 2:
-        det = matrix[0][0] * matrix[1][1] - matrix[0][1] * matrix[1][0]
-        return det
-    if n == 3:
-        det = matrix[0][0] * matrix[1][1] * matrix[2][2] + matrix[0][1] * matrix[1][2] * matrix[2][0] + matrix[0][2] * matrix[1][0] * matrix[2][1] - matrix[0][2] * matrix[1][1] * matrix[2][0] - matrix[0][0] * matrix[1][2] * matrix[2][1] - matrix[0][1] * matrix[1][0] * matrix[2][2]
-        return det
+    if function_choice not in range(1, 5):
+        raise ValueError("Неверный выбор функции!")
 
-    for i in range(n):
-        pivot = i
-        for j in range(i + 1, n):
-            if abs(matrix[j][i]) > abs(matrix[pivot][i]):
-                pivot = j
-        if pivot != i:
-            det *= -1.0
-            matrix[i], matrix[pivot] = matrix[pivot], matrix[i]
-        det *= matrix[i][i]
-        if abs(det) < E:
-            return 0.0
-        for j in range(i + 1, n):
-            coefficient = matrix[j][i] / matrix[i][i]
-            for k in range(i, n):
-                matrix[j][k] -= coefficient * matrix[i][k]
-    return det
+    print("Выберите способ решения:")
+    print("1) Метод Ньютона")
+    print("2) Метод хорд")
+    print("3) Метод простой итерации")
+    print("4) Метод Ньютона для систем")
+    choice_method = int(input())
 
-def gauss_solve(matrix, y_values, n):
-    answers = [0] * n
-    k, index = 0, 0
-    for k in range(n):
-        max_val = abs(matrix[k][k])
-        index = k
-        for i in range(k + 1, n):
-            if abs(matrix[i][k]) > max_val:
-                max_val = abs(matrix[i][k])
-                index = i
+    if choice_method not in range(1, 5):
+        raise ValueError("Неверный выбор метода!")
 
-        matrix[k], matrix[index] = matrix[index], matrix[k]
-        y_values[k], y_values[index] = y_values[index], y_values[k]
+    print("Как бы вы хотели получить значения границы интервала, "
+          "начальное приближение к корню (в случае, где оно не высчитывается) и погрешность вычисления?")
+    print("1 - вручную")
+    print("2 - из файла")
+    data_input = int(input())
 
-        for i in range(k, n):
-            temp = matrix[i][k]
-            if abs(temp) < E:
-                continue
-            for j in range(k, n):
-                matrix[i][j] = matrix[i][j] / temp
-            y_values[i] = y_values[i] / temp
-            if i == k:
-                continue
-            for j in range(n):
-                matrix[i][j] = matrix[i][j] - matrix[k][j]
-            y_values[i] = y_values[i] - y_values[k]
+    if data_input not in [1, 2]:
+        raise ValueError("Неверный выбор способа получения данных!")
 
-    for k in range(n - 1, -1, -1):
-        answers[k] = y_values[k]
-        for i in range(k):
-            y_values[i] = y_values[i] - matrix[i][k] * answers[k]
-    return answers
+    segment = [0, 0]
+    EPS = 0
 
+    if data_input == 1:
+        print("Введите границу отрезка через пробел:")
+        segment[0], segment[1] = map(float, input().split())
+        if segment[0] >= segment[1]:
+            raise ValueError("Начальное значение интервала должно быть меньше конечного значения!")
+        if (function_choice == 1 and F1(segment[0]) * F1(segment[1]) > 0) or \
+                (function_choice == 2 and F2(segment[0]) * F2(segment[1]) > 0) or \
+                (function_choice == 3 and F3(segment[0]) * F3(segment[1]) > 0):
+            raise ValueError("На заданном интервале нет корня!")
+        print("Введите погрешность:")
+        EPS = float(input())
+        if EPS < 0:
+            raise ValueError("Некорректно введена погрешность!")
+    elif data_input == 2:
+        with open("test.txt", "r") as file:
+            segment[0], segment[1], EPS = map(float, file.readline().split())
 
-def print_matrix(matrix_a, vector_b, n):
-    print("Треугольная матрица: ")
-    for i in range(n):
-        for j in range(n):
-            print(matrix_a[i][j], end="\t")
-        print("|", vector_b[i])
-
-def print_results(vector_x, residuals):
-    print("Вектор неизвестных равны: ")
-    for i in range(len(vector_x)):
-        print(f"x[{i}] = {vector_x[i]}")
-    print("Вектор невязок равны: ")
-    for i in range(len(residuals)):
-        print(f"r[{i}] = {residuals[i]}")
+    if choice_method == 1:
+        result = NewtonMethod.SolveEquation(segment, EPS, function_choice)
+        print("Решение: x =", result)
+    elif choice_method == 2:
+        result = ChordsMethod.SolveEquation(segment, EPS, function_choice)
+        print("Решение: x =", result)
+    elif choice_method == 3:
+        result = SimpleIterationsMethod.SolveEquation(segment, EPS, function_choice)
+        print("Решение: x =", result)
+    elif choice_method == 4:
+        result = SystemNewtonMethod.SolveEquation(segment[0], segment[1], EPS)
+        print("Приближенное решение: x =", result[0], ", y =", result[1])
 
 if __name__ == "__main__":
-    n = int(input("Введите количество уравнений: "))
-    if n > 20:
-        print("Количество уравнений превышает допустмиое :(")
-        exit()
-
-    matrix_a = np.zeros((n, n))
-    vector_y = np.zeros(n)
-
-    print("Каким способом хотите заполнить матрицу?")
-    print("1 - С помощью файла")
-    print("2 - Вручную")
-    choice = int(input())
-    if choice == 1:
-        filename = input("Введите имя файла: ")
-        try:
-            with open(filename, 'r') as file:
-                for i in range(n):
-                    matrix_a[i] = list(map(float, file.readline().split()))
-                vector_y = list(map(float, file.readline().split()))
-        except IOError:
-            print("Ошибка чтения файла")
-            exit()
-    else:
-        for i in range(n):
-            print(f"Введите коэффициенты {i + 1}-го уравнения через пробел: ")
-            matrix_a[i] = list(map(float, input().split()))
-        print("Введите правые части уравнений через пробел ")
-        vector_y = list(map(float, input().split()))
-
-    print_matrix(matrix_a, vector_y, n)
-    det = np.linalg.det(matrix_a)
-    print("Определитель матрицы равен: ", det)
-    if det != 0.0:
-        vector_x = np.linalg.solve(matrix_a, vector_y)
-        residuals = np.dot(matrix_a, vector_x) - vector_y
-        print_results(vector_x, residuals)
-    else:
-        print("Определитель матрицы равен 0 => система либо имеет бесконечное множество решений, либо не имеет решений, т. е. несовместна")
-
-
+    main()
